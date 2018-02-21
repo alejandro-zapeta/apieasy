@@ -32,7 +32,8 @@ class Frame1(Frame):
         self.parent = parent
         self.var = StringVar(self)
         self.var.set(HTTP_OPTS[0]) # default value
-        self.w = apply(OptionMenu, (self, self.var) + tuple(HTTP_OPTS))
+        #self.w = apply(OptionMenu, (self, self.var) + tuple(HTTP_OPTS))
+	self.w = OptionMenu(self, self.var, HTTP_OPTS[0], *HTTP_OPTS)
         self.w.grid(row=0, column=0)
         #self.w.bind('<Return>', self.doit)
         self.e = Entry(self, width=100,)
@@ -74,7 +75,7 @@ class Frame1(Frame):
                 r = requests.post(uri, json=json1)
 				
             self.text2.delete('1.0', END)
-            self.text2.insert('1.0', json.loads(r.text))
+            self.text2.insert('1.0', json.dumps(r.json(), ensure_ascii=False))
         except Exception as e:
             tkMessageBox.showerror("Error", e)
 		
