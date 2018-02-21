@@ -1,0 +1,108 @@
+from Tkinter import *
+import json
+import requests
+from ttk import *
+import tkMessageBox
+def show_menu(e):
+    w = e.widget
+    the_menu.entryconfigure("Cut",
+    command=lambda: w.event_generate("<<Cut>>"))
+    the_menu.entryconfigure("Copy",
+    command=lambda: w.event_generate("<<Copy>>"))
+    the_menu.entryconfigure("Paste",
+    command=lambda: w.event_generate("<<Paste>>"))
+    the_menu.tk.call("tk_popup", the_menu, e.x_root, e.y_root)
+    
+def slct(event):
+    event.widget.select_range(0, 'end')
+    event.widget.icursor('end')  
+
+HTTP_OPTS = [
+    "GET",
+    "POST",
+    "PUT",
+    "DELETE",
+    "OPTIONS",
+    "TRACE"
+]
+
+class Frame1(Frame):
+    def __init__(self, parent):
+        Frame.__init__(self, parent)
+        self.parent = parent
+        self.var = StringVar(self)
+        self.var.set(HTTP_OPTS[0]) # default value
+        self.w = apply(OptionMenu, (self, self.var) + tuple(HTTP_OPTS))
+        self.w.grid(row=0, column=0)
+        #self.w.bind('<Return>', self.doit)
+        self.e = Entry(self, width=100,)
+        self.e.grid(row=0, column=1)
+        self.e.focus()
+        self.e.bind_class("Entry", "<Button-3><ButtonRelease-3>", show_menu)
+        self.e.bind('<Control-KeyRelease-a>',slct)
+        self.e.bind('<Control-KeyRelease-e>',slct)
+        self.e.bind('<Return>', self.doit)
+        #self.e.pack()
+        self.b = Button(self, text="OK", command=self.doit)
+        #self.b.pack()
+        self.b.grid(row=0, column=2)
+		
+        self.m = PanedWindow(self, orient=VERTICAL, )
+        self.m.grid(row=1, column=0, columnspan=3)
+        #m.pack(fill=BOTH, expand=1)
+
+        self.text1 = Text(self.m, width=100, height=10)
+        self.m.add(self.text1)
+        self.text2 = Text(self.m, width=100, height=25)
+        self.m.add(self.text2)	
+		
+    def doit(self,event=None):
+        try:
+            
+            print "doit";
+            uri = self.e.get();
+            if not (uri and uri.strip()):
+                return
+            txt= self.text1.get("1.0",'end-1c')
+            json1 = None
+            if (txt and txt.strip()):
+                json1 = json.loads(txt)
+            treq = self.var.get()
+            if(treq == "GET"):
+                r = requests.get(uri, json=json1)
+            elif (treq == "POST"):
+                r = requests.post(uri, json=json1)
+            self.text2.insert('1.0', json.loads(r.text))
+        except Exception as e:
+            tkMessageBox.showerror("Error", e)
+		
+        #self.w.pack()
+        #self.text = Text(self, width=40, height=10)
+        #self.text.pack()
+def hello():
+    global tabControl
+    tabx = Frame1(tabControl)  
+    tabControl.add(tabx, text='Tab X')
+    print "hello!"	
+win = Tk()
+win.title("ApiEasy - Lite version")                 # Add a title 
+menubar = Menu(win)
+
+tabControl = Notebook(win)          # Create Tab Control
+menubar.add_command(label="ADD", command=hello)
+
+tab1 = Frame1(tabControl)            # Create a tab 
+#tab2 = Frame1(tabControl)            # Create a tab 
+tabControl.add(tab1, text='Tab 1')      # Add the tab
+#tabControl.add(tab2, text='Tab 2')      # Add the tab
+tabControl.pack(expand=1, fill="both")  # Pack to make visible
+
+win.config(menu=menubar)
+win.mainloop()     
+
+
+
+#root = Tk()
+#Frame1(root).pack()
+#root.mainloop()
+#root.mainloop()
