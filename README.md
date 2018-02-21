@@ -5,7 +5,7 @@ ApiEasy use Python, Tkinter and Requests for the libraries.
 :) 
 
 Installation:
-1. Install Python 
+1. Install Python2.7
 2. Install Requests 
   pip install requests
 3. Download the file apieasy.py and Run It.
