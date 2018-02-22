@@ -3,7 +3,16 @@ import json
 import requests
 from ttk import *
 import tkMessageBox
+def make_menu(w):
+    import Tkinter
+    print "making menu"
+    global the_menu
+    the_menu = Tkinter.Menu(w, tearoff=0)
+    the_menu.add_command(label="Cut")
+    the_menu.add_command(label="Copy")
+    the_menu.add_command(label="Paste")
 def show_menu(e):
+    print "showMenu"
     w = e.widget
     the_menu.entryconfigure("Cut",
     command=lambda: w.event_generate("<<Cut>>"))
@@ -16,6 +25,12 @@ def show_menu(e):
 def slct(event):
     event.widget.select_range(0, 'end')
     event.widget.icursor('end')  
+    
+def select_all(event):
+    event.widget.tag_add('sel', '1.0', 'end-1c')
+    event.widget.mark_set(INSERT, "1.0")
+    event.widget.see(INSERT)
+    return 'break'
 
 HTTP_OPTS = [
     "GET",
@@ -26,9 +41,98 @@ HTTP_OPTS = [
     "TRACE"
 ]
 
+class CustomNotebook(Notebook):
+    """A ttk Notebook with close buttons on each tab"""
+
+    __initialized = False
+
+    def __init__(self, *args, **kwargs):
+        if not self.__initialized:
+            self.__initialize_custom_style()
+            self.__inititialized = True
+
+        kwargs["style"] = "CustomNotebook"
+        Notebook.__init__(self, *args, **kwargs)
+
+        self._active = None
+
+        self.bind("<ButtonPress-1>", self.on_close_press, True)
+        self.bind("<ButtonRelease-1>", self.on_close_release)
+
+    def on_close_press(self, event):
+        """Called when the button is pressed over the close button"""
+
+        element = self.identify(event.x, event.y)
+
+        if "close" in element:
+            index = self.index("@%d,%d" % (event.x, event.y))
+            self.state(['pressed'])
+            self._active = index
+
+    def on_close_release(self, event):
+        """Called when the button is released over the close button"""
+        if not self.instate(['pressed']):
+            return
+
+        element =  self.identify(event.x, event.y)
+        index = self.index("@%d,%d" % (event.x, event.y))
+
+        if "close" in element and self._active == index:
+            self.forget(index)
+            self.event_generate("<<NotebookTabClosed>>")
+
+        self.state(["!pressed"])
+        self._active = None
+
+    def __initialize_custom_style(self):
+        style = Style()
+        self.images = (
+            PhotoImage("img_close", data='''
+                R0lGODlhCAAIAMIBAAAAADs7O4+Pj9nZ2Ts7Ozs7Ozs7Ozs7OyH+EUNyZWF0ZWQg
+                d2l0aCBHSU1QACH5BAEKAAQALAAAAAAIAAgAAAMVGDBEA0qNJyGw7AmxmuaZhWEU
+                5kEJADs=
+                '''),
+            PhotoImage("img_closeactive", data='''
+                R0lGODlhCAAIAMIEAAAAAP/SAP/bNNnZ2cbGxsbGxsbGxsbGxiH5BAEKAAQALAAA
+                AAAIAAgAAAMVGDBEA0qNJyGw7AmxmuaZhWEU5kEJADs=
+                '''),
+            PhotoImage("img_closepressed", data='''
+                R0lGODlhCAAIAMIEAAAAAOUqKv9mZtnZ2Ts7Ozs7Ozs7Ozs7OyH+EUNyZWF0ZWQg
+                d2l0aCBHSU1QACH5BAEKAAQALAAAAAAIAAgAAAMVGDBEA0qNJyGw7AmxmuaZhWEU
+                5kEJADs=
+            ''')
+        )
+
+        style.element_create("close", "image", "img_close",
+                            ("active", "pressed", "!disabled", "img_closepressed"),
+                            ("active", "!disabled", "img_closeactive"), border=8, sticky='')
+        style.layout("CustomNotebook", [("CustomNotebook.client", {"sticky": "nswe"})])
+        style.layout("CustomNotebook.Tab", [
+            ("CustomNotebook.tab", {
+                "sticky": "nswe", 
+                "children": [
+                    ("CustomNotebook.padding", {
+                        "side": "top", 
+                        "sticky": "nswe",
+                        "children": [
+                            ("CustomNotebook.focus", {
+                                "side": "top", 
+                                "sticky": "nswe",
+                                "children": [
+                                    ("CustomNotebook.label", {"side": "left", "sticky": ''}),
+                                    ("CustomNotebook.close", {"side": "left", "sticky": ''}),
+                                ]
+                        })
+                    ]
+                })
+            ]
+        })
+    ])
+
 class Frame1(Frame):
     def __init__(self, parent):
-        Frame.__init__(self, parent)
+        self.root = Frame.__init__(self, parent)
+        make_menu(parent)
         self.parent = parent
         self.var = StringVar(self)
         self.var.set(HTTP_OPTS[0]) # default value
@@ -37,9 +141,9 @@ class Frame1(Frame):
         self.w.grid(row=0, column=0)
         #self.w.bind('<Return>', self.doit)
         self.e = Entry(self, width=100,)
+        self.e.bind("<Button-3>", show_menu)
         self.e.grid(row=0, column=1)
         self.e.focus()
-        self.e.bind_class("Entry", "<Button-3><ButtonRelease-3>", show_menu)
         self.e.bind('<Control-KeyRelease-a>',slct)
         self.e.bind('<Control-KeyRelease-e>',slct)
         self.e.bind('<Return>', self.doit)
@@ -53,10 +157,15 @@ class Frame1(Frame):
         #m.pack(fill=BOTH, expand=1)
 
         self.text1 = Text(self.m, width=100, height=10)
+        self.text1.bind('<Control-KeyRelease-a>',select_all)
+        self.text1.bind('<Control-KeyRelease-e>',select_all)
         self.m.add(self.text1)
         self.text2 = Text(self.m, width=100, height=25)
+        self.text2.bind('<Control-KeyRelease-a>',select_all)
+        self.text2.bind('<Control-KeyRelease-e>',select_all)
         self.m.add(self.text2)	
 		
+    
     def doit(self,event=None):
         try:
             
@@ -85,18 +194,20 @@ class Frame1(Frame):
 def hello():
     global tabControl
     tabx = Frame1(tabControl)  
-    tabControl.add(tabx, text='Tab X')
+    tabControl.add(tabx, text='TabRest')
     print "hello!"	
+
 win = Tk()
+#make_menu(win)
 win.title("ApiEasy - Lite version")                 # Add a title 
 menubar = Menu(win)
 
-tabControl = Notebook(win)          # Create Tab Control
+tabControl = CustomNotebook(win)          # Create Tab Control
 menubar.add_command(label="ADD", command=hello)
 
 tab1 = Frame1(tabControl)            # Create a tab 
 #tab2 = Frame1(tabControl)            # Create a tab 
-tabControl.add(tab1, text='Tab 1')      # Add the tab
+tabControl.add(tab1, text='TabRest')      # Add the tab
 #tabControl.add(tab2, text='Tab 2')      # Add the tab
 tabControl.pack(expand=1, fill="both")  # Pack to make visible
 
