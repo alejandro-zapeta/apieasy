@@ -140,7 +140,7 @@ class Frame1(Frame):
 	self.w = OptionMenu(self, self.var, HTTP_OPTS[0], *HTTP_OPTS)
         self.w.grid(row=0, column=0)
         #self.w.bind('<Return>', self.doit)
-        self.e = Entry(self, width=100,)
+        self.e = Entry(self, width=120,)
         self.e.bind("<Button-3>", show_menu)
         self.e.grid(row=0, column=1)
         self.e.focus()
@@ -156,11 +156,11 @@ class Frame1(Frame):
         self.m.grid(row=1, column=0, columnspan=3)
         #m.pack(fill=BOTH, expand=1)
 
-        self.text1 = Text(self.m, width=100, height=10)
+        self.text1 = Text(self.m, width=120, height=10)
         self.text1.bind('<Control-KeyRelease-a>',select_all)
         self.text1.bind('<Control-KeyRelease-e>',select_all)
         self.m.add(self.text1)
-        self.text2 = Text(self.m, width=100, height=25)
+        self.text2 = Text(self.m, width=120, height=25)
         self.text2.bind('<Control-KeyRelease-a>',select_all)
         self.text2.bind('<Control-KeyRelease-e>',select_all)
         self.m.add(self.text2)	
@@ -182,7 +182,7 @@ class Frame1(Frame):
                 r = requests.get(uri, json=json1)
             elif (treq == "POST"):
                 r = requests.post(uri, json=json1)
-				
+            r.raise_for_status()	
             self.text2.delete('1.0', END)
             self.text2.insert('1.0', json.dumps(r.json(), ensure_ascii=False))
         except Exception as e:
